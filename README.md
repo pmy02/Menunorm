@@ -193,8 +193,6 @@ measured on the open benchmark above.
 - Code-switching recovery depends on the offline glossary; unseen
   romanizations (e.g. `kimchi jjigae`) correctly fall through to
   `UNMATCHED` rather than being guessed (their category is still assigned).
-- The canonical inventory (136 labels) is small; scaling experiments
-  (1K+ labels, ANN search) are on the roadmap.
 
 ## Installation
 
@@ -287,24 +285,12 @@ backends, lint, the unit suite, and a 1k-row end-to-end smoke run.
 
 ## Roadmap
 
-- [ ] Scale the canonical inventory to 1K+ labels with ANN (FAISS) matching
 - [ ] Embedding-based matcher (Korean SBERT) as a third fusion candidate,
       with the same ablation protocol
 - [ ] Active-learning loop: route low-margin matches and label proposals
       into a category-aware review queue
 - [ ] Hangul jamo-level n-grams for stronger typo robustness on the hard track
 - [ ] 도시락·죽 category once the label inventory covers it
-
-## Citation
-
-```bibtex
-@software{park2023menunorm,
-  author  = {Park, Minyoung},
-  title   = {MenuNorm: Korean Product-Name Standardization},
-  year    = {2023},
-  url     = {https://github.com/pmy02/Data_Standardization}
-}
-```
 
 ## License
 
