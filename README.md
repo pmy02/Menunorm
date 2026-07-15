@@ -38,7 +38,7 @@ engagement data is under NDA, and the original implementation was a set of
 ad-hoc notebooks in which normalization rules were edited by hand, one regex
 at a time.
 
-This repository (v2) is the **systematized rebuild** of that work:
+This repository (v3) is the **systematized rebuild** of that work:
 
 - **two-level standardization** — level 1 assigns every row to one of 13
   delivery-app categories whose design is grounded in platform taxonomies and
