@@ -27,7 +27,8 @@ def small_run(tmp_path_factory):
         "output_dir": str(tmp / "out"),
         "columns": {
             "store": "store_id", "category": "store_category",
-            "barcode": "barcode", "name": "raw_name", "gold": "gold_label",
+            "barcode": "barcode", "name": "raw_name",
+            "gold": "gold_label", "gold_category": "gold_category",
         },
         "filter": {"nonfood_categories": ["편의점", "마트"], "not_target_label": "NOT_TARGET"},
         "normalize": {"drop_residual_latin": True},
@@ -60,6 +61,15 @@ def test_accuracy_floor(small_run):
     assert metrics["matched_accuracy"] > 0.95
 
 
+def test_category_layer(small_run):
+    metrics, out = small_run
+    # Every surviving row must receive exactly one category (full coverage).
+    assert metrics["category_coverage"] == 1.0
+    assert metrics["category_accuracy"] > 0.90
+    assert (out / "category_report.csv").exists()
+    assert (out / "confusion_matrix.csv").exists()
+
+
 def test_metrics_json_round_trip(small_run):
     metrics, out = small_run
     on_disk = json.loads((out / "metrics.json").read_text(encoding="utf-8"))
@@ -81,7 +91,8 @@ def test_simple_tokenizer_path(small_run, tmp_path):
         "output_dir": str(tmp_path / "out_simple"),
         "columns": {
             "store": "store_id", "category": "store_category",
-            "barcode": "barcode", "name": "raw_name", "gold": "gold_label",
+            "barcode": "barcode", "name": "raw_name",
+            "gold": "gold_label", "gold_category": "gold_category",
         },
         "filter": {"nonfood_categories": ["편의점", "마트"], "not_target_label": "NOT_TARGET"},
         "normalize": {"drop_residual_latin": True},

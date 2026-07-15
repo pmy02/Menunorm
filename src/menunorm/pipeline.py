@@ -14,8 +14,12 @@ Stages
    higher-scoring one wins (ties prefer the surface candidate, which never
    loses characters). Scores below the abstention threshold yield
    ``UNMATCHED`` instead of a forced assignment.
-4. **Evaluation & discovery** - gold-label metrics with a per-path ablation,
-   threshold sweep, and cluster-based proposals for new canonical labels.
+4. **Category assignment (level 1)** - every surviving row is mapped into
+   exactly one delivery-app category (13 total, see ``docs/taxonomy.md``)
+   through a fallback chain that guarantees 100 % coverage.
+5. **Evaluation & discovery** - gold-label metrics with a per-path ablation,
+   category accuracy/confusion, threshold sweep, and cluster-based proposals
+   for new canonical labels.
 
 Why fusion: morphological analysis is brittle under spacing noise (MeCab
 loses characters on 돼 지국밥) while surface n-grams are brittle when
@@ -45,6 +49,13 @@ from menunorm.cluster import propose_labels
 from menunorm.dictionary import build_user_dictionary_csv, compile_user_dictionary
 from menunorm.evaluate import compute_metrics, threshold_sweep
 from menunorm.rules import RuleSet
+from menunorm.taxonomy import (
+    assign_categories,
+    category_report,
+    confusion_matrix,
+    label_category_map,
+    load_taxonomy,
+)
 from menunorm.tokenize import SimpleTokenizer, filter_tokens, get_tokenizer
 
 logger = logging.getLogger(__name__)
@@ -85,6 +96,7 @@ def _load_lexicons(lexicon_dir: Path) -> dict[str, Any]:
     ]
     return {
         "labels": labels["label"].tolist(),
+        "labels_df": labels,
         "stopwords": stopwords,
         "variant_map": dict(zip(variants["variant"], variants["canonical"])),
         "translation_map": dict(zip(translations["english"], translations["korean"])),
@@ -173,7 +185,15 @@ def run_pipeline(config: dict[str, Any]) -> dict[str, Any]:
 
     df["pred_label"] = _apply_threshold(df["best_label"], df["score"], df["method"])
 
-    # Stage 4 - evaluation + discovery ------------------------------------------
+    # Stage 4 - category assignment (level 1, full coverage) --------------------
+    taxonomy = load_taxonomy(Path(config["lexicon_dir"]))
+    label_to_cat = label_category_map(lex["labels_df"])
+    known_cats = set(taxonomy["category"])
+    df["pred_category"], df["category_source"] = assign_categories(
+        df["best_label"], df["method"], df[cols["category"]], label_to_cat, known_cats
+    )
+
+    # Stage 5 - evaluation + discovery ------------------------------------------
     metrics: dict[str, Any] = {
         "n_rows_input": n_raw,
         "n_rows_after_filter": n_filtered,
@@ -182,9 +202,9 @@ def run_pipeline(config: dict[str, Any]) -> dict[str, Any]:
         "user_dictionary_compiled": user_dic is not None,
         "threshold": thr,
     }
+    not_target = config["filter"].get("not_target_label", "NOT_TARGET")
     gold_col = cols.get("gold")
     if gold_col and gold_col in df.columns:
-        not_target = config["filter"].get("not_target_label", "NOT_TARGET")
         metrics["filter_leakage_rows"] = int((df[gold_col] == not_target).sum())
         eval_mask = df[gold_col] != not_target
         eval_df = df[eval_mask]
@@ -216,6 +236,31 @@ def run_pipeline(config: dict[str, Any]) -> dict[str, Any]:
         sweep = threshold_sweep(sweep_frame, thresholds=[round(0.05 * i, 2) for i in range(1, 19)])
         sweep.to_csv(out_dir / "threshold_sweep.csv", index=False)
 
+    # Category (level 1) evaluation: full coverage is guaranteed by design.
+    gold_cat_col = cols.get("gold_category")
+    if gold_cat_col and gold_cat_col in df.columns:
+        cat_mask = df[gold_cat_col] != not_target
+        cat_df = df[cat_mask]
+        metrics["category_coverage"] = float(cat_df["pred_category"].notna().mean())
+        metrics["category_accuracy"] = float(
+            (cat_df["pred_category"] == cat_df[gold_cat_col]).mean()
+        )
+        unmatched_mask = cat_df["pred_label"] == UNMATCHED
+        metrics["n_unmatched_rows"] = int(unmatched_mask.sum())
+        if unmatched_mask.any():
+            metrics["category_accuracy_on_unmatched"] = float(
+                (
+                    cat_df.loc[unmatched_mask, "pred_category"]
+                    == cat_df.loc[unmatched_mask, gold_cat_col]
+                ).mean()
+            )
+        report = category_report(cat_df[gold_cat_col], cat_df["pred_category"])
+        report.to_csv(out_dir / "category_report.csv", index=False)
+        order = taxonomy["category"].tolist()
+        confusion_matrix(cat_df[gold_cat_col], cat_df["pred_category"], order).to_csv(
+            out_dir / "confusion_matrix.csv"
+        )
+
     unmatched = df.loc[df["pred_label"] == UNMATCHED, "clean_name"].tolist()
     proposals = propose_labels(
         unmatched,
@@ -229,10 +274,13 @@ def run_pipeline(config: dict[str, Any]) -> dict[str, Any]:
     # Artifacts ------------------------------------------------------------------
     keep = [
         cols["store"], cols["category"], cols["name"], "normalized", "clean_name",
-        "pred_label", "score", "method", "match_path", "rules_fired",
+        "pred_label", "score", "method", "match_path", "pred_category",
+        "category_source", "rules_fired",
     ]
     if gold_col and gold_col in df.columns:
         keep.append(gold_col)
+    if cols.get("gold_category") and cols["gold_category"] in df.columns:
+        keep.append(cols["gold_category"])
     df[keep].to_csv(out_dir / "standardized.csv", index=False)
     df[keep].sample(min(200, len(df)), random_state=0).to_csv(
         out_dir / "rule_trace_sample.csv", index=False

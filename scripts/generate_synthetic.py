@@ -35,8 +35,11 @@ def main() -> None:
 
     labels = synthetic.load_canonical_labels(ROOT / "data/lexicon/canonical_labels.csv")
     retail = pd.read_csv(ROOT / "data/lexicon/retail_products.csv")["name"].tolist()
+    taxonomy = pd.read_csv(ROOT / "data/lexicon/categories.csv")
 
-    df = synthetic.generate(args.n, labels, retail, seed=args.seed, hard=args.hard)
+    df = synthetic.generate(
+        args.n, labels, retail, taxonomy=taxonomy, seed=args.seed, hard=args.hard
+    )
     out = synthetic.save(df, args.out)
     print(f"wrote {len(df):,} rows -> {out}")
     print(f"  target rows : {(df['gold_label'] != synthetic.NOT_TARGET).sum():,}")

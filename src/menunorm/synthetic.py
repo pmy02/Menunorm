@@ -10,13 +10,20 @@ benchmark that reproduces the noise modes documented during that project:
 * Korean/English code-switching             cheese돈가스, 불고기 burger
 * spelling variants                         돈까스, 라테, 케익
 * store-branch prefixes                     [강남점] 물냉면
-* a Zipf (long-tail) label distribution, matching the EDA finding that
-  motivated the original project
 * retail rows with *valid* EAN-13 barcodes and rows from non-food stores,
   which the stage-0 filter must remove (gold label ``NOT_TARGET``)
 
-Every row carries a gold label, so the full pipeline is quantitatively
-evaluable end to end.
+The label mix is sampled in **two levels**: first a delivery-app category by
+its ``benchmark_share`` (weights informed by published order statistics; see
+``docs/taxonomy.md``), then a label inside that category by a Zipf
+distribution - reproducing the long-tail EDA finding that motivated the
+original project. ``store_category`` is intentionally **noisy** (a bunsik
+place may sell 돈가스): with probability ``store_noise`` a row is placed in a
+different food category than its item, so a classifier cannot shortcut
+category prediction by reading the store column.
+
+Every row carries ``gold_label`` and ``gold_category``, so both levels of the
+pipeline are quantitatively evaluable end to end.
 """
 
 from __future__ import annotations
@@ -44,6 +51,12 @@ _TEMPS = ["ICE {}", "HOT {}", "아이스 {}", "핫 {}", "아이스{}"]
 _BRANCHES = ["[강남점] {}", "(본점) {}", "[2호점] {}", "홍대점 {}"]
 _QUANTITIES = ["{} 500ml", "{} 1L", "{} 350g"]
 
+# Beverage labels eligible for temperature prefixes (ICE/HOT).
+_BEVERAGE_SUFFIXES = ("라떼", "티", "에이드", "스무디", "차")
+_BEVERAGES_EXPLICIT = {
+    "아메리카노", "카푸치노", "에스프레소", "카페모카", "콜드브루", "아인슈페너",
+}
+
 # canonical spelling -> common variant/typo (inverse of variant_map.csv)
 _TYPO = {
     "돈가스": "돈까스", "라떼": "라테", "케이크": "케익", "샌드위치": "샌드윗치",
@@ -58,8 +71,11 @@ _ENGLISH = {
     "불고기": "bulgogi", "새우": "shrimp", "마늘": "garlic",
 }
 
-_FOOD_CATEGORIES = ["카페", "한식", "중식", "일식", "양식", "분식", "치킨", "버거", "간식"]
 _NONFOOD_CATEGORIES = ["편의점", "마트"]
+
+
+def _is_beverage(label: str) -> bool:
+    return label in _BEVERAGES_EXPLICIT or label.endswith(_BEVERAGE_SUFFIXES)
 
 
 def _make_ean13(rng: np.random.Generator) -> str:
@@ -89,9 +105,9 @@ def _corrupt(name: str, rng: np.random.Generator) -> str:
     return "".join(chars)
 
 
-def _apply_noise(name: str, category: str, rng: np.random.Generator) -> str:
+def _apply_noise(name: str, rng: np.random.Generator) -> str:
     """Apply 0-3 independent noise operations to a canonical name."""
-    if category == "카페" and rng.random() < 0.25:
+    if _is_beverage(name) and rng.random() < 0.25:
         name = rng.choice(_TEMPS).format(name)
     if rng.random() < 0.20:
         for canon, typo in _TYPO.items():
@@ -130,10 +146,12 @@ def generate(
     n_rows: int,
     labels: pd.DataFrame,
     retail_names: list[str],
+    taxonomy: pd.DataFrame | None = None,
     seed: int = 42,
     zipf_s: float = 1.05,
     retail_rate: float = 0.06,
     nonfood_rate: float = 0.04,
+    store_noise: float = 0.15,
     hard: bool = False,
     corrupt_rate: float = 0.12,
 ) -> pd.DataFrame:
@@ -143,23 +161,41 @@ def generate(
         n_rows: Number of rows to generate.
         labels: DataFrame with ``label`` and ``category`` columns.
         retail_names: Packaged retail product names (filter targets).
+        taxonomy: DataFrame with ``category`` and ``benchmark_share`` columns
+            (see ``data/lexicon/categories.csv``). When None, categories are
+            sampled uniformly.
         seed: RNG seed (the benchmark is fully deterministic given the seed).
-        zipf_s: Zipf exponent for the long-tail label distribution.
+        zipf_s: Zipf exponent for the within-category label distribution.
         retail_rate: Share of rows that are retail goods with valid EAN-13.
         nonfood_rate: Share of rows from non-food stores.
+        store_noise: Probability that a row's store category differs from its
+            item's category (prevents store-column shortcuts).
         hard: Enable the hard track - additional character-level typos that
             no lexicon covers (see :func:`_corrupt`).
         corrupt_rate: Per-row corruption probability on the hard track.
 
     Returns:
         DataFrame with columns ``store_id``, ``store_category``, ``barcode``,
-        ``raw_name``, ``gold_label``.
+        ``raw_name``, ``gold_label``, ``gold_category``.
     """
     rng = np.random.default_rng(seed)
-    label_rows = labels.sample(frac=1.0, random_state=seed).reset_index(drop=True)
-    ranks = np.arange(1, len(label_rows) + 1, dtype=float)
-    weights = 1.0 / ranks**zipf_s
-    weights /= weights.sum()
+    categories = sorted(labels["category"].unique())
+    if taxonomy is not None:
+        tax = taxonomy.set_index("category").loc[categories]
+        cat_weights = tax["benchmark_share"].to_numpy(dtype=float)
+        cat_weights = cat_weights / cat_weights.sum()
+    else:
+        cat_weights = np.full(len(categories), 1.0 / len(categories))
+
+    # Within each category: seeded shuffle + Zipf weights over its labels.
+    per_cat: dict[str, tuple[list[str], np.ndarray]] = {}
+    for cat in categories:
+        cat_labels = labels.loc[labels["category"] == cat, "label"].tolist()
+        order = rng.permutation(len(cat_labels))
+        shuffled = [cat_labels[i] for i in order]
+        ranks = np.arange(1, len(shuffled) + 1, dtype=float)
+        weights = 1.0 / ranks**zipf_s
+        per_cat[cat] = (shuffled, weights / weights.sum())
 
     records: list[dict[str, str]] = []
     for _ in range(n_rows):
@@ -174,6 +210,7 @@ def generate(
                     "barcode": _make_ean13(rng) if rng.random() < 0.7 else "",
                     "raw_name": name,
                     "gold_label": NOT_TARGET,
+                    "gold_category": NOT_TARGET,
                 }
             )
         elif roll < nonfood_rate + retail_rate:
@@ -182,26 +219,32 @@ def generate(
             records.append(
                 {
                     "store_id": f"S{rng.integers(0, 2000):04d}",
-                    "store_category": str(rng.choice(_FOOD_CATEGORIES)),
+                    "store_category": str(rng.choice(categories)),
                     "barcode": _make_ean13(rng),
                     "raw_name": name,
                     "gold_label": NOT_TARGET,
+                    "gold_category": NOT_TARGET,
                 }
             )
         else:
-            idx = int(rng.choice(len(label_rows), p=weights))
-            label = label_rows.loc[idx, "label"]
-            category = label_rows.loc[idx, "category"]
-            noisy = _apply_noise(label, category, rng)
+            cat = str(rng.choice(categories, p=cat_weights))
+            cat_labels, cat_w = per_cat[cat]
+            label = str(rng.choice(cat_labels, p=cat_w))
+            if rng.random() < store_noise:
+                store_cat = str(rng.choice([c for c in categories if c != cat]))
+            else:
+                store_cat = cat
+            noisy = _apply_noise(label, rng)
             if hard and rng.random() < corrupt_rate:
                 noisy = _corrupt(noisy, rng)
             records.append(
                 {
                     "store_id": f"S{rng.integers(0, 2000):04d}",
-                    "store_category": category,
+                    "store_category": store_cat,
                     "barcode": "" if rng.random() < 0.9 else f"M{rng.integers(0, 10**6):06d}",
                     "raw_name": noisy,
                     "gold_label": label,
+                    "gold_category": cat,
                 }
             )
     return pd.DataFrame.from_records(records)

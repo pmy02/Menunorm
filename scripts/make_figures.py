@@ -89,6 +89,63 @@ def fig_threshold(sweep: pd.DataFrame, threshold: float, out: Path) -> None:
     plt.close(fig)
 
 
+def _english_names(lexicon_dir: Path) -> dict[str, str]:
+    tax = pd.read_csv(lexicon_dir / "categories.csv")
+    return dict(zip(tax["category"], tax["category_en"]))
+
+
+def fig_category_distribution(df: pd.DataFrame, lexicon_dir: Path, out: Path) -> None:
+    """Predicted category mix vs. the benchmark's target share."""
+    tax = pd.read_csv(lexicon_dir / "categories.csv")
+    names = dict(zip(tax["category"], tax["category_en"]))
+    share = df["pred_category"].value_counts(normalize=True)
+    tax = tax.sort_values("benchmark_share", ascending=True)
+    labels = [names[c] for c in tax["category"]]
+    predicted = [share.get(c, 0.0) for c in tax["category"]]
+    target = tax["benchmark_share"].tolist()
+
+    fig, ax = plt.subplots(figsize=(7, 4.6), dpi=150)
+    y = range(len(labels))
+    ax.barh(y, predicted, color=COLOR_STD, alpha=0.85, label="assigned share (pipeline)")
+    ax.plot(target, y, "o", color=COLOR_ACC, ms=5, label="benchmark target share")
+    ax.set_yticks(list(y), labels)
+    ax.set_xlabel("share of rows")
+    ax.set_title("Category mix: assigned vs. calibrated target")
+    ax.legend(frameon=False, loc="lower right")
+    ax.grid(alpha=0.25, axis="x")
+    fig.tight_layout()
+    fig.savefig(out / "category_distribution.png")
+    plt.close(fig)
+
+
+def fig_confusion(results: Path, lexicon_dir: Path, out: Path) -> None:
+    """Row-normalized category confusion heatmap (gold rows x predicted cols)."""
+    cm_path = results / "confusion_matrix.csv"
+    if not cm_path.exists():
+        return
+    cm = pd.read_csv(cm_path, index_col=0)
+    names = _english_names(lexicon_dir)
+    labels = [names.get(c, c) for c in cm.index]
+
+    fig, ax = plt.subplots(figsize=(7.4, 6.4), dpi=150)
+    im = ax.imshow(cm.to_numpy(), cmap="Blues", vmin=0, vmax=1)
+    ax.set_xticks(range(len(labels)), labels, rotation=45, ha="right", fontsize=8)
+    ax.set_yticks(range(len(labels)), labels, fontsize=8)
+    for i in range(len(labels)):
+        for j in range(len(labels)):
+            val = cm.iloc[i, j]
+            if val >= 0.005:
+                ax.text(j, i, f"{val:.2f}", ha="center", va="center", fontsize=6.5,
+                        color="white" if val > 0.6 else "#1f2937")
+    ax.set_xlabel("predicted category")
+    ax.set_ylabel("gold category")
+    ax.set_title("Category confusion (row-normalized, hard track)")
+    fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+    fig.tight_layout()
+    fig.savefig(out / "confusion_matrix.png")
+    plt.close(fig)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--results", type=Path, default=ROOT / "results/latest")
@@ -98,8 +155,11 @@ def main() -> None:
 
     df = pd.read_csv(args.results / "standardized.csv")
     metrics = json.loads((args.results / "metrics.json").read_text(encoding="utf-8"))
+    lexicon_dir = ROOT / "data/lexicon"
     fig_long_tail(df, args.out)
     fig_funnel(metrics, df, args.out)
+    fig_category_distribution(df, lexicon_dir, args.out)
+    fig_confusion(args.results, lexicon_dir, args.out)
     sweep_path = args.results / "threshold_sweep.csv"
     if sweep_path.exists():
         fig_threshold(pd.read_csv(sweep_path), metrics["threshold"], args.out)

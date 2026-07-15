@@ -13,6 +13,7 @@ columns:
   barcode: barcode
   name: raw_name
   gold: gold_label            # omit for unlabeled production data
+  gold_category: gold_category
 
 filter:
   nonfood_categories: [편의점, 마트]

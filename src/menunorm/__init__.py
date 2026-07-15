@@ -10,12 +10,15 @@ from menunorm.barcode import validate_ean13
 from menunorm.canonicalize import Canonicalizer
 from menunorm.dictionary import build_user_dictionary_csv, has_jongseong
 from menunorm.rules import RuleSet
+from menunorm.taxonomy import assign_categories, load_taxonomy
 from menunorm.tokenize import filter_tokens, get_tokenizer, remove_stopwords
 
-__version__ = "2.0.0"
+__version__ = "3.0.0"
 
 __all__ = [
     "Canonicalizer",
+    "assign_categories",
+    "load_taxonomy",
     "RuleSet",
     "filter_tokens",
     "build_user_dictionary_csv",
