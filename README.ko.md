@@ -36,7 +36,7 @@
 데이터는 NDA로 공개할 수 없고, 당시 구현은 정규식을 한 줄씩 손으로 고치던
 임시방편 노트북이었습니다.
 
-이 저장소(v2)는 그 작업을 **체계적으로 재구축**한 결과물입니다.
+이 저장소(v3)는 그 작업을 **체계적으로 재구축**한 결과물입니다.
 
 - **2단계 표준화** — 1단계(level 1)는 플랫폼 분류 체계와 공개 수요 통계에
   근거해 설계한 13개 배달앱 카테고리에 모든 행을 배정하고
@@ -272,7 +272,6 @@ scikit-learn 1.8.0에서 검증했고, CI는 Python 3.10/3.12, 두 토크나이�
 
 ## 로드맵
 
-- [ ] 표준 레이블 1,000개 이상 + ANN(FAISS) 매칭으로 확장
 - [ ] 한국어 SBERT 임베딩 매처를 세 번째 융합 후보로 추가하고 동일 ablation
       프로토콜로 평가
 - [ ] 저마진 매칭과 레이블 제안을 카테고리 인지형 검수 큐로 보내는
@@ -280,16 +279,6 @@ scikit-learn 1.8.0에서 검증했고, CI는 Python 3.10/3.12, 두 토크나이�
 - [ ] 자모 단위 n-gram으로 hard 트랙 오타 견고성 강화
 - [ ] 레이블 인벤토리 확장 시 도시락·죽 카테고리 추가
 
-## 인용
-
-```bibtex
-@software{park2023menunorm,
-  author  = {Park, Minyoung},
-  title   = {MenuNorm: Korean Product-Name Standardization},
-  year    = {2023},
-  url     = {https://github.com/pmy02/Data_Standardization}
-}
-```
 
 ## 라이선스
 
