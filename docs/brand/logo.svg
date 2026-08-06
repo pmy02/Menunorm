@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- MenuNorm mark: bowl + chopsticks -->
+  <rect x="0" y="0" width="512" height="512" rx="123" fill="#1F6FEB"/>
+  <!-- bowl: layered half-discs (outer white, ring, inner white) -->
+  <path d="M 102.4 225 A 153.6 153.6 0 0 0 409.6 225 Z" fill="#FFFFFF"/>
+  <path d="M 130.0 225 A 126.0 126.0 0 0 0 382.0 225 Z" fill="#1F6FEB"/>
+  <path d="M 160.8 225 A 95.2 95.2 0 0 0 351.2 225 Z" fill="#FFFFFF"/>
+  <!-- foot -->
+  <rect x="199.7" y="375.5" width="112.6" height="38.4" rx="19.2" fill="#FFFFFF"/>
+  <!-- chopsticks -->
+  <line x1="337.9" y1="51.2" x2="122.9" y2="204.8" stroke="#FFFFFF" stroke-width="23" stroke-linecap="round"/>
+  <line x1="409.6" y1="81.9" x2="194.6" y2="235.5" stroke="#FFFFFF" stroke-width="23" stroke-linecap="round"/>
+</svg>

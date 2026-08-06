@@ -1,56 +1,152 @@
-[English](README.md) | **한국어**
+<div align="center">
 
-# MenuNorm — 한국어 상품명 표준화 파이프라인
+<img src="docs/brand/icon_512.png" width="92" alt="MenuNorm 로고">
 
-[![CI](https://github.com/pmy02/Data_Standardization/actions/workflows/ci.yml/badge.svg)](https://github.com/pmy02/Data_Standardization/actions)
+# MenuNorm
+
+**노이즈 상품명을 위한 한국어 2단계 표준화 파이프라인**
+
+136개 표준 레이블 · 13개 배달앱 카테고리 · 카테고리 커버리지 100 % · 시드 기반 완전 재현
+
+[![CI](https://github.com/pmy02/Menunorm/actions/workflows/ci.yml/badge.svg)](https://github.com/pmy02/Menunorm/actions)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Paper](https://img.shields.io/badge/paper-PDF-b31b1b)](paper/menunorm_ko.pdf)
 
-노이즈 가득한 한국어 상품명을 **두 단계**로 표준화하는 재현 가능한
-파이프라인입니다. 모든 행을 **13개의 배달앱 스타일 카테고리**(치킨, 한식,
-중식, … — **커버리지 100 % 보장**)에 배정하고, 근거가 충분한 행은 **136개의
-세부 표준 레이블**로까지 정규화합니다. 규칙 추적(audit trace), 임계값 기반
-보류(abstention), 신규 레이블 자동 발굴, 그리고 누구나 측정 가능한 공개
-벤치마크를 갖추고 있습니다.
+[English](README.md) · **한국어**  |  [논문](paper/menunorm_ko.pdf) · [분류 체계 설계](docs/taxonomy.md) · [변경 이력](CHANGELOG.md)
 
+</div>
+
+---
+
+```text
+★양념 치킨 라지★         →  양념치킨       │ 치킨              1.00
+[강남점] ♥하와이안피자♥   →  하와이안피자    │ 피자              1.00
+불고고기 버거             →  불고기버거     │ 버거·패스트푸드    0.89   퍼지 매칭
+♥부찌대개세트♥           →  UNMATCHED     │ 찜·탕·찌개        0.21   레이블은 보류,
+                                                                    카테고리는 유지
 ```
-★양념 치킨 라지★         →  양념치킨      | 치킨            (1.00)
-[강남점] ♥하와이안피자♥   →  하와이안피자   | 피자            (1.00)
-불고고기 버거             →  불고기버거    | 버거·패스트푸드   (0.89, 퍼지 매칭)
-♥부찌대개세트♥           →  UNMATCHED    | 찜·탕·찌개       (레이블은 보류 — 카테고리는 유지)
+
+판매자가 직접 입력한 상품명에는 장식 기호, 옵션 접미, 오타, 한·영 혼용이
+뒤섞여 있습니다. **MenuNorm**은 이런 이름을 깨끗한 표준 레이블과 탐색용
+카테고리로 사상하며, 무엇보다 **추측하지 말아야 할 때를 압니다** — 세부
+레이블은 보류할 수 있고, 카테고리는 언제나 배정됩니다.
+
+## 핵심 특징
+
+- **한 번의 실행, 두 개의 레벨.** 거부 옵션을 갖춘 세부 레이블(136종)과 결코 보류하지 않는 굵은 카테고리(13종) — 어떤 행도 미분류로 남지 않습니다.
+- **융합이 단일 토크나이저를 능가.** 형태소 경로(MeCab + 자동 컴파일 사용자 사전)와 표면 경로를 병렬 채점해 행 단위 최댓값을 채택합니다. 주장이 아니라 ablation으로 입증했습니다.
+- **NDA에도 불구하고 검증 가능.** 원 데이터는 비공개이므로, 모든 수치를 누구나 명령 한 줄로 재생성 가능한 공개·결정적 벤치마크에서 측정했습니다.
+- **속이기 어렵게 설계.** 지름길로 쓰일 열에 의도적으로 노이즈를 심고, 폐쇄 세계 상한을 명시하며, *hard* 트랙은 어떤 렉시콘도 모르는 오타를 주입합니다.
+
+## 주요 결과
+
+공개 벤치마크(20,000행, 시드 42) 측정치입니다. 의미 있는 쪽은 어떤
+렉시콘도 커버하지 않는 글자 수준 오타를 추가한 **hard 트랙**입니다.
+
+| 트랙 | 레이블 정확도 | 레이블 커버리지 | **카테고리 정확도** | **카테고리 커버리지** | 필터 누수 |
+|---|---:|---:|---:|---:|---:|
+| standard | 100.0 % | 100.0 % | **100.0 %** | **100 %** | 0행 |
+| hard | 98.44 % | 98.75 % | **99.72 %** | **100 %** | 0행 |
+
+> **standard 트랙을 읽는 법.** 생성기와 렉시콘이 어휘를 공유하므로, 이
+> 트랙의 만점은 파이프라인이 *알려진* 모든 노이즈 유형을 역변환함을
+> 증명하는 폐쇄 세계 회귀 테스트이지 실전 성능 주장이 아닙니다. hard
+> 트랙은 바로 그 교란 요인을 제거하기 위해 존재합니다.
+
+**레벨 간 우아한 성능 저하.** 레이블 매칭이 보류된 hard 트랙 224개
+행에서도 카테고리는 **85.3 %**가 정답이었습니다. `♥부찌대개세트♥`는 최고
+레이블에 0.21점에 그쳐 정당하게 거부되지만, 카테고리는 찜·탕·찌개로
+귀결됩니다. 매 실행 `category_accuracy_on_unmatched`로 보고됩니다.
+
+**분할 방식 ablation** (hard 트랙) — 융합이 두 단일 경로를 모두 능가합니다.
+
+| 경로 | 커버리지 | 매칭 정확도 | 전체 정확도 |
+|---|---:|---:|---:|
+| 형태소 단독 (MeCab + 사용자 사전) | 93.14 % | 99.30 % | 92.48 % |
+| 표면 단독 | 98.58 % | 99.76 % | 98.34 % |
+| **융합 (행 단위 최댓값)** | **98.75 %** | 99.68 % | **98.44 %** |
+
+20,000행 전체 실행은 단일 코어에서 **약 1초**에 끝납니다.
+
+## 빠른 시작
+
+```bash
+git clone https://github.com/pmy02/Menunorm.git
+cd Menunorm
+pip install -e ".[mecab,figures,dev]"
+
+python scripts/generate_synthetic.py --n 20000 --seed 42   # 벤치마크 생성
+python scripts/run_pipeline.py --config configs/default.yaml
 ```
 
-> **v3의 새로운 점.** v2는 세부 레이블 표준화까지만 수행했습니다. v3는
-> **level-1 카테고리 레이어**를 추가합니다: 모든 행이 자료조사에 근거한
-> 13개 배달앱 카테고리 중 하나에 **커버리지 100 %**로 배정되고(폴백 체인,
-> 행별 `category_source` 감사 기록), 벤치마크 클래스 비율이 공개 수요
-> 통계로 보정되며, 카테고리 레벨 자체가 완전히 평가됩니다 — 카테고리별
-> P/R/F1, 혼동 행렬, 우아한 성능 저하 지표 `category_accuracy_on_unmatched`.
-> 전체 버전 이력: **[CHANGELOG.md](CHANGELOG.md)**.
+`python-mecab-ko`는 Linux/macOS 휠을 제공합니다. 설치되지 않은 환경에서도
+표면 토크나이저로 자동 전환되어 그대로 동작하며, CI가 두 경로를 모두
+검증합니다.
 
-## 개요
+<details>
+<summary><b>전체 사용법 — hard 트랙, 그림 생성, 라이브러리 API, 자체 데이터</b></summary>
 
-이 프로젝트는 2023년 디지털 플랫폼 기업과의 산학협력에서 출발했습니다.
-**약 2,000만 건의 원시 상품 데이터를 약 1,000개의 표준 레이블로 정규화**하여
-검색·분석이 깨끗한 카테고리 위에서 동작하도록 만드는 과제였습니다. 협력
-데이터는 NDA로 공개할 수 없고, 당시 구현은 정규식을 한 줄씩 손으로 고치던
-임시방편 노트북이었습니다.
+```bash
+# hard 트랙 (어떤 렉시콘도 커버하지 않는 오타 포함)
+python scripts/generate_synthetic.py --n 20000 --seed 42 --hard \
+    --out data/synthetic/menu_synthetic_hard.csv
+python scripts/run_pipeline.py --config configs/default.yaml \
+    --input data/synthetic/menu_synthetic_hard.csv --outdir results/hard
 
-이 저장소(v3)는 그 작업을 **체계적으로 재구축**한 결과물입니다.
+# 완료된 실행 결과로부터 README 그림 재생성
+python scripts/make_figures.py --results results/hard --out docs/figures
+```
 
-- **2단계 표준화** — 1단계(level 1)는 플랫폼 분류 체계와 공개 수요 통계에
-  근거해 설계한 13개 배달앱 카테고리에 모든 행을 배정하고
-  ([`docs/taxonomy.md`](docs/taxonomy.md)), 2단계(level 2)는 보류 임계값을
-  갖춘 136개 세부 레이블로 정규화합니다.
-- 노트북 대신 설정 기반·테스트 완비 파이썬 패키지(`menunorm`)로 구현 —
-  모든 규칙이 버전 관리되는 설정 파일에 있고 행 단위 감사 기록을 남깁니다.
-- NDA 문제는 **결정적(deterministic) 합성 벤치마크**로 해결 — 실제 데이터에서
-  기록한 노이즈 유형을 재현하므로, 이 문서의 모든 수치는 누구나 명령 한 줄로
-  재생성해 *직접 측정*할 수 있습니다.
-- 2023년 원본 노트북은 출처 보존을 위해 (주석만 영문화하여)
-  [`notebooks/legacy/`](notebooks/legacy)에 그대로 남겨 두었습니다.
+실행마다 출력 디렉터리에 생성되는 산출물:
 
-## 방법
+| 산출물 | 내용 |
+|---|---|
+| `standardized.csv` | 행별 점수, 매칭 경로, 카테고리 + `category_source`, `rules_fired` 감사 기록 |
+| `metrics.json` | 두 레벨 지표, ablation, 실행 시간 |
+| `category_report.csv` | 카테고리별 정밀도 / 재현율 / F1 |
+| `confusion_matrix.csv` | 행 정규화 카테고리 혼동 행렬 |
+| `threshold_sweep.csv` | τ에 따른 커버리지·정밀도 곡선 |
+| `label_proposals.csv` | 군집화된 보류 건 → 신규 레이블 후보 (검수용) |
+
+라이브러리로 사용:
+
+```python
+from menunorm import Canonicalizer, RuleSet
+
+rules   = RuleSet(translation_map={"americano": "아메리카노"})
+matcher = Canonicalizer(["아메리카노", "카페라떼", "김치찌개"])
+
+clean = rules.apply("★ICE Americano 세트★")   # → "아메리카노"
+matcher.match([clean])                         # → 아메리카노, score 1.0
+```
+
+자체 데이터에 적용하려면 `configs/default.yaml`의 입력 경로를 바꾸고
+`columns:` 아래에 열 이름을 매핑하면 됩니다(정답이 있을 때만 `gold:` /
+`gold_category:` 지정).
+
+</details>
+
+## 배경
+
+**산학협력.** 2023년 디지털 플랫폼 기업과의 협력에서 약 **2,000만 건의
+원시 상품 데이터**를 약 **1,000개의 표준 레이블**로 정규화했습니다(표본
+수기 검수 기준 약 95 %). 이 성과는 비공개 데이터에 대한 것으로 본
+저장소에서 **재현되지 않으며**, 주장이 아니라 맥락으로 제공됩니다.
+
+**왜 재구축했는가.** 협력 이후 두 가지 문제가 남았습니다. 워크플로가
+방법론적으로 취약했습니다 — 규칙을 노트북 안에서 정규식 한 줄씩 손으로
+고치고, 진행 상황은 스프레드시트를 `ver26.xlsx → ver27.xlsx`로 저장하며
+관리했습니다. 그리고 데이터가 NDA에 묶여 아무것도 외부에서 검증할 수
+없었습니다. MenuNorm은 이 둘을 함께 해결합니다 — 방법은 설정 기반·테스트
+완비·감사 가능한 패키지가 되었고, 평가는 모든 수치가 측정·재현되는 공개
+벤치마크로 옮겨졌습니다.
+
+2023년 원본 노트북은 출처 보존을 위해
+[`notebooks/legacy/`](notebooks/legacy)에 남아 있습니다(코드 원본 유지,
+주석만 영문화).
+
+## 동작 방식
 
 ```mermaid
 flowchart LR
@@ -61,202 +157,92 @@ flowchart LR
     D1 --> E["스팬 인식<br/>불용어 제거"]
     D2 --> E
     E --> F["3단계<br/>문자 n-gram TF-IDF<br/>점수 융합"]
-    F -->|"score ≥ τ"| G["표준 레이블<br/>(level 2, 136종)"]
+    F -->|"score ≥ τ"| G["표준 레이블<br/>(level 2 · 136종)"]
     F -->|"score < τ"| H[UNMATCHED]
-    G --> J["배달앱 카테고리<br/>(level 1, 13종 — 커버리지 100 %)"]
+    G --> J["배달앱 카테고리<br/>(level 1 · 13종 · 커버리지 100 %)"]
     H --> J
-    H --> I["K-means 발굴 →<br/>레이블 제안"]
+    H --> I["k-means 발굴 →<br/>레이블 제안"]
 ```
 
-| 단계 | 동작 | 2023년 버전에서의 대체 대상 |
+| 단계 | 동작 | 2023년 버전 대체 |
 |---|---|---|
-| **0 — 대상 필터링** | 비외식 업종과 EAN-13 체크섬이 *유효한* 행(공산품)을 제거합니다. | 동일 아이디어, 이제 단위 테스트로 검증. |
-| **1 — 규칙 정규화** | 용어집 번역, 괄호/장식 제거, 옵션 패턴, 표기 변형을 고정된 순서로 적용하고 행마다 `rules_fired` 추적을 남깁니다. | 손으로 고치던 정규식 + 버전별 엑셀 저장. |
-| **2 — 이중 분할** | **도메인 사용자 사전을 컴파일한** MeCab 경로와 의존성 없는 표면 분할 경로를 함께 사용합니다. 불용어 제거는 **스팬 인식** 방식이라 과분할된 불용어(시그니처 → 시그/니/처)도 놓치지 않습니다. | Okt 명사 추출 + 수작업 사전 스프레드시트. |
-| **3 — 표준화 + 융합 (level 2)** | 두 후보 문자열을 표준 사전과 대조(완전일치 + 문자 2–4gram TF-IDF 코사인)해 높은 점수를 채택합니다. 임계값 미만이면 강제 배정 대신 **보류**(`UNMATCHED`)합니다. | 변형 하나씩 수동 매핑. |
-| **4 — 카테고리 배정 (level 1)** | 폴백 체인(최고 유사도 레이블의 카테고리 → 매장 업종 → 배치 최빈값)으로 모든 행에 13개 카테고리 중 정확히 하나를 배정하고, 어느 분기가 발화했는지 행마다 기록합니다. **커버리지 100 %가 설계상 보장**되며, 매 실행 측정됩니다. | 존재하지 않던 단계. |
-| **5 — 평가 + 발굴** | 두 레벨 모두의 정답 기반 지표, 경로별 ablation, 카테고리 혼동 행렬, 임계값 스윕을 산출하고, 미매칭 이름을 K-means로 묶어 군집 대표를 *신규 레이블 후보*로 제안합니다. | K-means는 EDA에서 1회 사용. |
+| **0 · 대상 필터링** | 비외식 매장과 EAN-13 체크섬이 *유효한* 행(공산품)을 제거합니다. | 동일 아이디어, 이제 단위 테스트 |
+| **1 · 규칙 정규화** | 용어집 번역, 괄호·장식 제거, 옵션 패턴, 표기 변형을 고정 순서로 적용하고 행별 `rules_fired` 기록을 남깁니다. | 손으로 고치던 정규식 + 엑셀 버전 관리 |
+| **2 · 이중 분할** | 도메인 사용자 사전을 컴파일한 MeCab과 의존성 없는 표면 분할을 병행합니다. 불용어 제거는 **스팬 인식**이라 과분할된 형태(시그니처 → 시그/니/처)도 매칭됩니다. | Okt 명사 + 수작업 사전 시트 |
+| **3 · 표준화 + 융합** | 두 후보를 채점(완전일치 → 문자 2–4gram TF-IDF 코사인)해 높은 쪽을 채택하고, τ 미만이면 강제 배정 대신 **보류**합니다. | 변형 하나씩 수동 매핑 |
+| **4 · 카테고리 배정** | 폴백 체인(최고 점수 레이블의 카테고리 → 매장 업종 → 배치 최빈값)으로 배정하고 분기를 행마다 기록합니다. 커버리지 100 %는 설계상 보장되며 측정됩니다. | 존재하지 않던 단계 |
+| **5 · 평가 + 발굴** | 두 레벨 지표, ablation, 혼동 행렬, 임계값 스윕을 산출하고, 보류 건을 군집화해 신규 레이블 후보로 제안합니다. | K-means는 EDA에서 1회 사용 |
 
-**왜 융합인가?** 형태소 분석은 띄어쓰기 노이즈에 취약하고(`돼 지국밥`에서
-글자를 잃고, `쫄면`을 용언으로 태깅), 순수 표면 매칭은 붙여 쓴 복합어에
-약합니다. 두 후보를 모두 점수화해 행 단위 최대값을 취하면 양쪽의 장점이
-유지되며, 그 효과는 주장 대신 아래 ablation으로 정량화했습니다.
+**왜 융합인가?** 두 경로는 정반대 방향으로 취약합니다. 형태소 분석은
+띄어쓰기 노이즈에서 글자를 잃고(`돼 지국밥` → 국밥; 쫄면은 용언으로
+태깅되어 삭제), 표면 매칭은 붙여 쓴 복합어에 약합니다. 행 단위 최댓값은
+더 강한 신호를 남기며, 그 이득은 위 ablation이 가정 대신 정량화합니다.
 
 ## 카테고리 분류 체계
 
-13개 카테고리는 한국 배달앱의 카테고리 탐색 구조를 따르되 **음식 종류
-기준만** 사용합니다. 시간·기능 기반 분류(야식, 포장, 1인분)는 제외했는데,
-요기요 파트너 공식 문서 스스로가 야식을 음식이 아닌 *영업시간*으로 정의하기
-때문입니다. 또한 앱은 한 매장을 최대 3개 카테고리에 노출하지만, 분석에는
-분할(partition)이 필요하므로 MenuNorm은 행마다 **정확히 하나**의 카테고리를
-배정합니다. 벤치마크의 클래스 비율은 공개 수요 통계에 근거한
-`benchmark_share`(치킨 1위 ~0.18, 아시안 ~0.01의 얇은 꼬리)로 보정했습니다.
+13개 카테고리는 한국 배달앱의 탐색 구조를 따르되 **음식 종류 기준만**
+사용합니다. 시간·기능 기반 분류(야식, 포장, 1인분)는 제외했는데, 요기요
+파트너 문서 스스로가 야식을 음식이 아닌 *영업시간*으로 정의하기
+때문입니다. 앱은 한 매장을 최대 3개 카테고리에 노출하지만 분석에는
+분할이 필요하므로 행마다 **정확히 하나**를 배정합니다. 벤치마크의 클래스
+비율은 공개 수요 통계에 맞춰 보정했습니다(치킨 1위 ≈ 0.18, 아시안 꼬리
+≈ 0.01).
 
-설계 원칙, 카테고리 표, 근거 자료 전체, 그리고 결정 로그(회가 왜 일식에
-있는지, 마라탕이 왜 중식인지, …)는 **[`docs/taxonomy.md`](docs/taxonomy.md)**
-에 정리했습니다.
+> 치킨 · 한식 · 중식 · 카페·디저트 · 분식 · 찜·탕·찌개 · 돈까스·회·일식 ·
+> 피자 · 버거·패스트푸드 · 족발·보쌈 · 고기·구이 · 양식 · 아시안
 
-## 결과
+설계 원칙, 출처, 그리고 전체 결정 로그(회가 왜 일식에 있는지, 마라탕이 왜
+중식인지, 야식이 왜 빠졌는지)는
+**[`docs/taxonomy.md`](docs/taxonomy.md)**에 있습니다.
 
-모든 수치는 공개 합성 벤치마크(20,000행, seed 42)에서 측정했으며 명령 한
-줄로 재현됩니다([재현성](#재현성) 참고). 벤치마크는 두 트랙입니다.
+## 그림
 
-- **standard** — 실제 데이터에서 기록한 노이즈 유형(장식, 옵션, 띄어쓰기,
-  한·영 혼용, 표기 변형, 지점 접두사, 공산품/비외식 혼입)만 사용.
-- **hard** — 위 노이즈에 더해 *어떤 렉시콘에도 없는* 글자 수준 오타(삭제·
-  전치·중복)를 주입. 사전 커버리지가 아니라 퍼지 매칭의 견고성을 검증합니다.
+<p align="center">
+  <img src="docs/figures/category_distribution.png" width="88%" alt="배정된 카테고리 비율과 보정 목표"><br>
+  <em>배정된 카테고리 비율이 보정 목표를 그대로 추적합니다(최대 편차 0.005).</em>
+</p>
 
-| 트랙 | Level 2: 레이블 전체 정확도 | Level 1: 카테고리 정확도 | 카테고리 커버리지 | 고유 변형 → 레이블 | 필터 누수 |
-|---|---:|---:|---:|---|---:|
-| standard | **100.0 %** | **100.0 %** | 100 % | 6,912 → 136 | 0행 |
-| hard | **98.44 %** | **99.72 %** | 100 % | 7,981 → 136 | 0행 |
+<p align="center">
+  <img src="docs/figures/confusion_matrix.png" width="72%" alt="카테고리 혼동 행렬"><br>
+  <em>hard 트랙에서도 카테고리 혼동 행렬은 대각선에 가깝습니다.</em>
+</p>
 
-> **standard 트랙은 정직하게 읽어야 합니다.** 생성기와 렉시콘이 같은 도메인
-> 어휘를 공유하므로, 이 트랙의 만점은 *"알려진 모든 노이즈 유형을 완전히
-> 역변환한다"*는 폐쇄 세계(closed-world) 회귀 테스트이지 실전 성능 주장이
-> 아닙니다. hard 트랙은 바로 그 한계 때문에 존재합니다.
+<p align="center">
+  <img src="docs/figures/long_tail.png" width="88%" alt="롱테일 붕괴"><br>
+  <em>7,981개의 원시 변형이 136개 표준 레이블로 수렴합니다.</em>
+</p>
 
-**레이블 세부 (hard 트랙):** 커버리지 98.75 %, 매칭 정확도 99.68 %.
-**Ablation** — 융합이 단일 경로 둘 모두를 능가합니다.
+<p align="center">
+  <img src="docs/figures/threshold_sweep.png" width="88%" alt="임계값 스윕"><br>
+  <em>보류 임계값은 커버리지와 정밀도 사이의 다이얼이며, τ = 0.45는 매 실행 재산출되는 이 스윕에서 선택됩니다.</em>
+</p>
 
-| 경로 | 커버리지 | 매칭 정확도 | 전체 정확도 |
-|---|---:|---:|---:|
-| 형태소 단독 (MeCab + 사용자 사전) | 93.14 % | 99.30 % | 92.48 % |
-| 표면 단독 | 98.58 % | 99.76 % | 98.34 % |
-| **융합 (max score)** | **98.75 %** | 99.68 % | **98.44 %** |
-
-**레벨 간 우아한 성능 저하.** hard 트랙에서 레이블 매처가 *보류*한 224행에서도
-카테고리는 **85.3 %** 정확했습니다 — 세밀한 판단이 마땅히 거부하는 애매한
-증거에서도 굵은 판단은 살아남습니다(`♥부찌대개세트♥` → 레이블 UNMATCHED,
-카테고리 찜·탕·찌개). 이 값은 매 실행 `category_accuracy_on_unmatched`로
-측정됩니다.
-
-**사용자 사전 효과** (실제 MeCab 출력 — 기본 사전은 외래어를 과분할):
-
-| 용어 | 기본 mecab-ko-dic | + 컴파일된 사용자 사전 |
-|---|---|---|
-| 아인슈페너 | `아인 / 슈페너` | `아인슈페너` |
-| 크로플 | `크로 / 플` | `크로플` |
-| 마라샹궈 | `마라 / 샹 / 궈` | `마라샹궈` |
-| 알리오올리오 | `알 / 리오 / 올리 / 오` | `알리오올리오` |
-
-**카테고리 비율과 혼동 행렬** — 배정된 비율은 보정 목표를 그대로 추적하며
-(최대 편차 0.005), hard 트랙에서도 혼동 행렬은 대각선에 가깝습니다.
-
-![Category distribution](docs/figures/category_distribution.png)
-
-![Category confusion](docs/figures/confusion_matrix.png)
-
-**롱테일 붕괴** — 표준화의 핵심 가치입니다. 7,981개의 원시 변형이 136개의
-표준 레이블로 수렴합니다.
-
-![Long-tail collapse](docs/figures/long_tail.png)
-
-**보류 임계값 트레이드오프** — 임계값은 커버리지와 정밀도 사이의 다이얼이며,
-운영점(τ = 0.45)은 매 실행마다 갱신되는 아래 스윕에서 선택했습니다.
-
-![Threshold sweep](docs/figures/threshold_sweep.png)
-
-![Pipeline funnel](docs/figures/funnel.png)
-
-20,000행 전체 실행은 단일 코어(Python 3.12)에서 **약 1초**입니다.
-
-### 원 프로젝트 성과 (2023, NDA)
-
-참고용 맥락: 원 산학협력에서는 **약 2,000만 건을 약 1,000개 레이블로, 표본
-수기 검수 기준 약 95 % 정확도**로 표준화했다고 보고했습니다. 이 수치는
-비공개 데이터 위의 2023년 프로젝트에 대한 것으로 **이 저장소에서 재현되지
-않으며**, 그 외 본 문서의 모든 수치는 위 공개 벤치마크에서 측정한 값입니다.
-
-### 알려진 한계
-
-- 벤치마크가 합성 데이터이므로 절대 수치는 실제 운영 데이터(미지의 오타
-  유형, OCR 노이즈, 신메뉴 트렌드)보다 낙관적입니다. hard 트랙이 그 간극을
-  좁히지만 없애지는 못합니다.
-- `benchmark_share`는 공개 통계에 근거한 설계 선택이지 시장 측정치가
-  아닙니다 — [`docs/taxonomy.md`](docs/taxonomy.md)의 정직성 노트 참고.
-- 한·영 혼용 복원은 오프라인 용어집에 의존합니다. 용어집에 없는 로마자
-  표기(예: `kimchi jjigae`)는 추측하지 않고 `UNMATCHED`로 정확히 보류됩니다
-  (카테고리는 여전히 배정됩니다).
-
-## 설치
-
-```bash
-git clone https://github.com/pmy02/Data_Standardization.git
-cd Data_Standardization
-pip install -e ".[mecab,figures,dev]"
-```
-
-`python-mecab-ko`는 Linux/macOS용 휠을 제공합니다. 설치되지 않은 환경에서는
-파이프라인이 자동으로 표면 토크나이저(`tokenizer: simple`)로 전환되어 그대로
-동작하며, CI가 두 경로를 모두 테스트합니다.
-
-## 사용법
-
-```bash
-# 1) 공개 벤치마크 생성 (결정적, 약 1.5 MB)
-python scripts/generate_synthetic.py --n 20000 --seed 42
-python scripts/generate_synthetic.py --n 20000 --seed 42 --hard \
-    --out data/synthetic/menu_synthetic_hard.csv
-
-# 2) 파이프라인 실행
-python scripts/run_pipeline.py --config configs/default.yaml
-python scripts/run_pipeline.py --config configs/default.yaml \
-    --input data/synthetic/menu_synthetic_hard.csv --outdir results/hard
-
-# 3) 그림 생성 (README 플롯)
-python scripts/make_figures.py --results results/hard --out docs/figures
-```
-
-실행 디렉터리에 산출물이 생성됩니다: `standardized.csv`(행별 점수·매칭 경로·
-**카테고리 + `category_source`**·`rules_fired` 감사 기록 포함),
-`metrics.json`(두 레벨 + ablation), `category_report.csv`(카테고리별
-정밀도/재현율/F1), `confusion_matrix.csv`, `threshold_sweep.csv`,
-`label_proposals.csv`, `rule_trace_sample.csv`.
-
-라이브러리로 사용:
-
-```python
-from menunorm import Canonicalizer, RuleSet
-
-rules = RuleSet(translation_map={"americano": "아메리카노"})
-matcher = Canonicalizer(["아메리카노", "카페라떼", "김치찌개"])
-
-clean = rules.apply("★ICE Americano 세트★")    # -> "아메리카노"
-matcher.match([clean])                          # -> 아메리카노, score 1.0
-```
-
-자체 데이터에 적용하려면 `configs/default.yaml`의 입력 경로를 바꾸고
-`columns:` 아래에 열 이름을 매핑하면 됩니다(정답이 있을 때만 `gold:` /
-`gold_category:` 지정).
-
-## 프로젝트 구조
+## 저장소 구조
 
 ```
-├── src/menunorm/          # 패키지 본체
-│   ├── rules.py           #   1단계: 선언적·추적 가능한 정규화
-│   ├── tokenize.py        #   2단계: MeCab/표면 + 스팬 인식 불용어
-│   ├── dictionary.py      #   MeCab 사용자 사전 빌더 (유니코드 종성 판별)
-│   ├── canonicalize.py    #   3단계: 완전일치 + 문자 n-gram TF-IDF + 보류
-│   ├── taxonomy.py        #   4단계: 13개 카테고리 레이어, 전체 커버리지 폴백 체인
-│   ├── cluster.py         #   5단계: K-means 레이블 발굴
-│   ├── evaluate.py        #   지표 + 임계값 스윕
-│   ├── synthetic.py       #   벤치마크 생성기 (비율 보정, standard/hard)
-│   ├── barcode.py         #   EAN-13 검증 (0단계)
-│   └── pipeline.py        #   오케스트레이션 + 산출물
-├── CHANGELOG.md          # version history: v1 → v2 → v3
-├── configs/default.yaml   # 모든 설정을 한 곳에
-├── data/lexicon/          # 표준 레이블, 카테고리, 불용어, 변형/번역 맵
-├── data/sample/           # 벤치마크 200행 샘플 (커밋됨)
-├── docs/taxonomy.md       # 카테고리 설계: 원칙, 근거 자료, 결정 로그
-├── scripts/               # generate_synthetic / run_pipeline / make_figures
-├── tests/                 # 엔드투엔드 회귀 포함 35개 테스트
-└── notebooks/legacy/      # 2023년 원본 노트북 (출처 보존)
+src/menunorm/
+├── rules.py          1단계 — 선언적·추적 가능한 정규화
+├── tokenize.py       2단계 — MeCab / 표면 + 스팬 인식 불용어
+├── dictionary.py     MeCab 사용자 사전 빌더 (유니코드 종성 판별)
+├── canonicalize.py   3단계 — 완전일치 + 문자 n-gram TF-IDF + 보류
+├── taxonomy.py       4단계 — 13개 카테고리 레이어, 전체 커버리지 폴백
+├── cluster.py        5단계 — k-means 레이블 발굴
+├── evaluate.py       지표 + 임계값 스윕
+├── synthetic.py      벤치마크 생성기 (비율 보정, 2트랙)
+├── barcode.py        EAN-13 검증 (0단계)
+└── pipeline.py       오케스트레이션 + 산출물
+
+configs/default.yaml  모든 설정을 한 곳에
+data/lexicon/         레이블, 카테고리, 불용어, 변형·번역 맵
+data/sample/          벤치마크 200행 샘플 (커밋됨)
+docs/taxonomy.md      카테고리 설계: 원칙, 출처, 결정 로그
+paper/                워킹 페이퍼 (국문/영문 · LaTeX + Word)와 그림
+scripts/              generate_synthetic · run_pipeline · make_figures
+tests/                엔드투엔드 회귀 포함 35개 테스트
+notebooks/legacy/     2023년 원본 노트북 (출처 보존)
 ```
 
 ## 재현성
-
-이 문서의 모든 결과는 아래 명령으로 재생성됩니다.
 
 ```bash
 pip install -e ".[mecab,figures,dev]" && pytest -q
@@ -264,22 +250,54 @@ python scripts/generate_synthetic.py --n 20000 --seed 42
 python scripts/run_pipeline.py --config configs/default.yaml
 ```
 
-시드가 같으면 결과는 결정적입니다. Python 3.12, pandas 3.0.2,
-scikit-learn 1.8.0에서 검증했고, CI는 Python 3.10/3.12, 두 토크나이저 경로,
-린트, 단위 테스트, 1,000행 엔드투엔드 스모크 실행을 모두 수행합니다.
+시드가 같으면 결과는 결정적입니다. Python 3.12 / pandas 3.0.2 /
+scikit-learn 1.8.0에서 검증했으며, CI는 Python 3.10·3.12, 두 토크나이저
+경로, 린트, 단위 테스트, 1,000행 엔드투엔드 스모크 실행을 수행합니다.
+
+## 버전 이력
+
+| 버전 | 핵심 |
+|---|---|
+| **v3.0.0** | 2단계 표준화 — 커버리지가 보장된 13개 카테고리 레이어, 카테고리 평가, 비율 보정·지름길 차단 벤치마크 |
+| **v2.0.0** | `menunorm` 패키지로 재구축 — 규칙 엔진, 이중 분할 융합, 공개 합성 벤치마크, 보류, 테스트 + CI |
+| **v1.0.0** | 2023년 산학협력 원본 (노트북, NDA 데이터) |
+
+상세 내역은 [`CHANGELOG.md`](CHANGELOG.md)에 있습니다.
+
+## 한계
+
+- 벤치마크는 합성 데이터입니다. 노이즈 모델이 기록된 실제 유형에서
+  도출되었고 hard 트랙이 렉시콘 커버리지라는 교란 요인을 제거하지만,
+  절대 수치는 개방 세계 운영 데이터(미지의 오타 부류, OCR 노이즈, 신규
+  메뉴)보다 낙관적입니다.
+- `benchmark_share`는 이질적 공개 통계를 참고한 설계 선택이며 **시장
+  측정치가 아닙니다**. [`docs/taxonomy.md`](docs/taxonomy.md)의 정직성
+  노트를 참고하세요.
+- 한·영 혼용 복원은 오프라인 용어집에 의존합니다. 용어집에 없는 로마자
+  표기는 추측되지 않고 `UNMATCHED`로 보류됩니다(카테고리는 배정됨).
+- 표준 레이블 인벤토리(136종)는 의도적으로 작습니다. ANN 검색을 통한
+  1,000개 이상 확장은 로드맵에 있습니다.
 
 ## 로드맵
 
-- [ ] 한국어 SBERT 임베딩 매처를 세 번째 융합 후보로 추가하고 동일 ablation
-      프로토콜로 평가
-- [ ] 저마진 매칭과 레이블 제안을 카테고리 인지형 검수 큐로 보내는
-      액티브 러닝 루프
+- [ ] ANN(FAISS) 매칭으로 표준 레이블 1,000개 이상 확장
+- [ ] 한국어 SBERT 임베딩 매처를 세 번째 융합 후보로 추가, 동일 ablation 프로토콜 적용
+- [ ] 저마진 매칭을 카테고리 인지형 검수 큐로 보내는 액티브 러닝 루프
 - [ ] 자모 단위 n-gram으로 hard 트랙 오타 견고성 강화
 - [ ] 레이블 인벤토리 확장 시 도시락·죽 카테고리 추가
 
+## 인용
+
+```bibtex
+@software{park2023menunorm,
+  author = {Park, Minyoung},
+  title  = {MenuNorm: Two-Level Standardization of Noisy Korean Product Names},
+  year   = {2023},
+  url    = {https://github.com/pmy02/Menunorm}
+}
+```
 
 ## 라이선스
 
-MIT — [LICENSE](LICENSE) 참고.
-
-관리: [@pmy02](https://github.com/pmy02). 이슈와 PR을 환영합니다.
+MIT — [LICENSE](LICENSE) 참고. 관리:
+[@pmy02](https://github.com/pmy02). 이슈와 PR을 환영합니다.

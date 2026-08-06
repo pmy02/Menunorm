@@ -38,6 +38,12 @@ from a manual notebook workflow to a two-level standardization system.
 - `category_distribution` figure (assigned vs. calibrated share) and
   `confusion_matrix` figure; taxonomy test suite (35 tests total).
 - `CHANGELOG.md` (this file) and a "What's new in v3" section in both READMEs.
+- Brand assets (`docs/brand/`: vector logo, icon, social preview) and a
+  conference working paper (`paper/`: English & Korean, XeLaTeX + Word)
+  presenting the two-level method, taxonomy design, and benchmark.
+- Full README rewrite in both languages: centered header with logo and
+  badges, results and quick start surfaced above the fold, collapsible
+  advanced usage, an inline figure gallery, and a version-history table.
 
 ### Changed
 - Results are now reported at both levels. Hard track (typos unseen by any

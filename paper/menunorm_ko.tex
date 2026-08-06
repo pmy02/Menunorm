@@ -1,0 +1,576 @@
+% MenuNorm — 한글 학회 논문
+% Build: xelatex menunorm_ko.tex (run twice)
+\documentclass[10pt,twocolumn]{article}
+
+\usepackage[a4paper,top=2.3cm,bottom=2.5cm,left=1.9cm,right=1.9cm,columnsep=0.75cm]{geometry}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\xeCJKsetup{CJKspace=true}   % 한국어 어절 간 공백 유지
+\setmainfont{Noto Serif CJK KR}
+\setsansfont{Noto Sans CJK KR}
+\setmonofont{Noto Sans Mono CJK KR}
+\setCJKmainfont{Noto Serif CJK KR}
+\setCJKsansfont{Noto Sans CJK KR}
+\setCJKmonofont{Noto Sans Mono CJK KR}
+
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf,skip=4pt}
+\usepackage{enumitem}
+\setlist{nosep,leftmargin=1.2em}
+\usepackage[hidelinks]{hyperref}
+\usepackage{url}
+\urlstyle{same}
+
+\renewcommand{\figurename}{그림}
+\renewcommand{\tablename}{표}
+\renewcommand{\refname}{참고문헌}
+
+\setlength{\parskip}{0pt}
+\setlength{\parindent}{1em}
+
+\newcommand{\menunorm}{\textsc{MenuNorm}}
+\newcommand{\unmatched}{\texttt{UNMATCHED}}
+
+\begin{document}
+
+\twocolumn[{%
+\begin{center}
+{\LARGE\bfseries 이중 분할 융합과 카테고리 전량 배정을 갖춘\\[2pt]
+한국어 상품명 2단계 표준화: \menunorm\par}
+\vspace{8pt}
+{\large\itshape Two-Level Standardization of Noisy Korean Product Names\\
+with Dual-Segmentation Fusion and Guaranteed Category Coverage\par}
+\vspace{12pt}
+{\large 박민영 (Minyoung Park)}\\[2pt]
+{\small 경상국립대학교 컴퓨터과학과 \;·\; Dream2Real\\
+\texttt{github.com/pmy02/Menunorm}}
+\vspace{12pt}
+\end{center}
+\begin{center}
+\begin{minipage}{0.92\textwidth}
+\small
+\textbf{요약.}
+사용자가 직접 입력하는 한국어 상품명에는 장식 기호(\mbox{★짜장면★}),
+옵션 접미(세트, 곱빼기), 띄어쓰기 오류, 한·영 혼용(\mbox{cheese돈가스}),
+표기 변형이 뒤섞여 있어, 수백 개 수준의 메뉴 어휘가 수백만 개의 표면형으로
+불어난다. 본 논문은 이러한 상품명을 두 단계로 표준화하는 재현 가능한
+파이프라인 \menunorm{}을 제안한다. 2단계(level 2)는 136종의 세부 표준
+레이블을 \emph{보류(abstention)} 옵션과 함께 부여하고, 1단계(level 1)는
+13종의 배달앱 카테고리를 폴백 체인을 통해 \emph{전량 배정(100\,\% 커버리지
+보장)}한다. 매칭기는 형태소 경로(도메인 사용자 사전을 자동 컴파일한
+MeCab)와 표면 경로의 두 분할 결과를 문자 $n$-gram TF--IDF 점수의 행 단위
+최댓값으로 융합하며, 융합이 단일 경로 각각을 능가함을 ablation으로
+입증한다. 동기가 된 산업 데이터(약 2,000만 건)는 NDA로 공개할 수 없으므로,
+실제 데이터에서 기록된 오염 유형을 재현하는 결정적 합성 벤치마크를
+공개한다. 벤치마크의 클래스 비율은 공개 수요 통계에 맞춰 보정되었고,
+\emph{hard 트랙}은 어떤 렉시콘도 커버하지 않는 글자 수준 오타를 주입하며,
+지름길 풀이를 차단하기 위해 매장 업종 열에는 의도적 노이즈를 심었다. hard
+트랙에서 \menunorm{}은 레이블 정확도 98.4\,\%, 카테고리 정확도
+99.7\,\%(커버리지 100\,\%)를 달성하고, 레이블 매칭이 보류된 224개 행에서도
+카테고리는 85.3\,\%가 정답으로, 레벨 간의 우아한 성능 저하를 정량화한다.
+모든 결과는 시드만으로 단일 코어에서 약 1초 만에 재생성된다. 코드, 렉시콘,
+벤치마크 생성기, 평가 도구를 모두 공개한다.\\[4pt]
+\textbf{Abstract.}
+User-generated Korean product names are noisy; a small menu vocabulary
+inflates into millions of surface forms. \menunorm{} standardizes such
+names at two levels: a fine-grained canonical label (136 classes) with an
+abstention option, and a delivery-app category (13 classes) with guaranteed
+full coverage via a fallback chain. A dual-segmentation matcher fuses a
+morphological path (MeCab with an auto-compiled user dictionary) and a
+surface path by per-row maximum of character $n$-gram TF--IDF scores, which
+an ablation shows dominates either path alone. As the motivating 20M-record
+industrial dataset is under NDA, we release a deterministic two-track
+synthetic benchmark---share-calibrated, shortcut-poisoned, with a hard track
+of lexicon-uncovered typos. On the hard track \menunorm{} reaches 98.4\,\%
+label and 99.7\,\% category accuracy at 100\,\% coverage; on abstained rows
+the category remains correct 85.3\,\% of the time. All results regenerate
+from a seed in about one second.\\[4pt]
+\textbf{키워드:} 텍스트 정규화, 개체 매칭, 한국어 자연어처리, 상품
+카테고리 분류, 선택적 예측, 합성 벤치마크
+\end{minipage}
+\end{center}
+\vspace{16pt}
+}]
+
+\section{서론}
+
+커머스 플랫폼에는 수천 개 판매자가 직접 입력한 상품명이 유입된다. 한국
+음식 배달 도메인에서 같은 메뉴는 \mbox{짜장면}, \mbox{★짜장면★ 500ml},
+\mbox{짜장면곱빼기}, \mbox{[강남점] 짜장면 세트} 등으로 나타난다. 홍보성
+장식, 옵션·수량 접미, 지점 접두, 띄어쓰기 오류, 표기 변형, 한·영 혼용이
+겹치면서 수백 개의 메뉴 어휘는 수백만 개의 서로 다른 문자열로 증식하고,
+검색·분석·추천은 이 롱테일 위에서 일제히 열화된다.
+
+본 연구는 약 2,000만 건의 원시 상품 데이터를 약 1,000개의 표준 레이블로
+정규화한 2023년 산학협력에서 출발하였다. 그 협력에는 두 가지 문제가
+남았다. 첫째, 당시 워크플로는 방법론적으로 취약했다. 정규화 규칙을
+노트북 안에서 정규식 한 줄씩 손으로 고치고, 진행 상황은 스프레드시트를
+버전 번호를 올려 저장하는 방식으로 관리되었다. 둘째, 데이터가 NDA에 묶여
+있어 보고된 성과를 외부에서 검증할 수 없었다. \menunorm{}은 이 두 문제를
+함께 해결하는 체계적 재구축이다. 방법은 설정 기반·테스트 완비·감사
+가능한 파이프라인이 되고, 평가는 공개 합성 벤치마크로 옮겨져 본 논문의
+모든 수치는 고정 시드로부터 측정·재현 가능하다.
+
+설계를 결정한 또 하나의 관찰이 있다. 하위 소비자가 언제나 가장 세밀한
+레이블만 필요로 하는 것은 아니다. 배달 플랫폼은 10--20개의 굵은
+카테고리(치킨, 한식, 중식 등)를 중심으로 탐색을 구성하고, 산업 통계도 그
+granularity로 발표된다. 그런데 애매한 입력에 대해 정직하게
+\emph{보류}하는 세밀 매칭기는 해당 행을 아무 배정 없이 남겨 둔다. 이에
+본 논문은 표준화를 \textbf{2단계}로 정식화한다. 2단계는 136종의 표준
+레이블을 보류 옵션과 함께 부여하고, 1단계는 13종의 배달앱 카테고리를
+폴백 체인으로 \emph{반드시} 배정한다. 그리고 세밀 판단이 거부한 행에서
+굵은 판단이 얼마나 살아남는지를 가정이 아니라 측정으로 보인다.
+
+\smallskip
+\noindent\textbf{기여.}
+\begin{enumerate}
+\item 선택적 세부 레이블 예측과 전량 카테고리 배정을 결합한 상품명
+  표준화의 2단계 정식화, 그리고 레벨 간 우아한 성능 저하를 정량화하는
+  지표(보류 행에서의 카테고리 정확도)를 제안한다(\S\ref{sec:task}).
+\item 13개 클래스, 제외 기준(시간 기반 야식 등), 단일 배정 정책이 플랫폼
+  문서와 공개 수요 통계에 근거하고 결정 로그가 공개된 배달앱 카테고리
+  분류 체계를 설계한다(\S\ref{sec:taxonomy}).
+\item 형태소 경로(MeCab + 자동 컴파일 사용자 사전)와 표면 경로를 문자
+  $n$-gram TF--IDF 점수의 행 단위 최댓값으로 융합하는 매칭기를 제안하고,
+  융합이 두 단일 경로를 모두 능가함을 ablation으로
+  보인다(\S\ref{sec:pipeline}, \S\ref{sec:results}).
+\item 공개·결정적 2트랙 벤치마크를 제안한다. \emph{standard} 트랙은
+  기록된 실제 노이즈 유형을 재현하고, \emph{hard} 트랙은 어떤 렉시콘도
+  커버하지 않는 글자 수준 오타를 추가하며, 클래스 비율은 공개 수요 통계로
+  보정되고, 의도적으로 노이즈를 섞은 매장 업종 열이 지름길 학습을
+  차단한다(\S\ref{sec:benchmark}).
+\end{enumerate}
+
+\section{관련 연구}
+\label{sec:related}
+
+\textbf{개체 매칭과 명칭 정규화.}
+노이즈 낀 표면 문자열을 표준 개체로 사상하는 문제는 고전적 데이터 매칭
+과제이다 \cite{christen2012}. 문자열 유사도 접근은 명칭 변형에 여전히
+강력한 기준선이며 \cite{cohen2003}, 특히 문자 $n$-gram은 분할·철자
+노이즈에 강건하여 \cite{cavnar1994,mcnamee2004} 본 매칭기의 근거가 된다.
+전자상거래의 대규모 상품 카테고리 분류는 주로 카탈로그 분류 체계에 대한
+지도 학습으로 연구되어 왔다 \cite{cevahir2016}. 본 설정은 NDA 경계의
+공개 측에 학습 말뭉치가 존재하지 않는다는 점에서 다르며, 이는 동작이
+전부 검사 가능한 렉시콘+유사도 설계로 이어진다.
+
+\textbf{한국어 형태소 분석.}
+교착어인 한국어는 형태소 분할의 이득이 크며, MeCab의 CRF 정식화
+\cite{kudo2004}와 mecab-ko-dic 사전은 KoNLPy \cite{park2014} 등으로
+접근 가능한 표준 오픈소스 스택이다. 다만 기본 사전은 음식 도메인
+외래어를 과분할하는데(아인슈페너 $\rightarrow$ 아인+슈페너), 본 연구는
+이 오류 유형을 자동 컴파일 사용자 사전으로 교정하고
+\S\ref{sec:results}에서 정량화한다.
+
+\textbf{선택적 예측.}
+신뢰도 임계값 아래에서 분류기가 판단을 보류하도록 허용하면 커버리지와
+정밀도가 교환된다 \cite{chow1970,elyaniv2010}. 본 연구는 거부 옵션을
+세부 레벨에만 적용하고, 보류가 허용되지 않는 상위 레벨과의 상호작용이라는
+기존에 보고되지 않은 문제를 다룬다.
+
+\textbf{합성 벤치마크와 지름길.}
+실데이터 공개가 불가능할 때 통제된 오류 모델로 생성한 데이터는 레코드
+연계 분야에서 확립된 평가 수단이다 \cite{christen2005}. 본 연구는 이
+전통을 따르되, 텍스트를 우회할 수 있는 유일한 메타데이터 열(매장 업종)에
+레이블 노이즈를 주입하여 \emph{지름길 학습} \cite{geirhos2020}으로부터
+벤치마크를 추가로 보호한다.
+
+\section{문제 정식화}
+\label{sec:task}
+
+표준 레이블 집합을 $\mathcal{L}$($|\mathcal{L}|{=}136$), 카테고리 집합을
+$\mathcal{C}$($|\mathcal{C}|{=}13$)라 하고, 전사 사상
+$\kappa:\mathcal{L}\rightarrow\mathcal{C}$가 주어진다. 원시 상품명
+$x$(및 매장 메타데이터)에 대해 시스템은
+\[
+\hat{\ell}(x)\in\mathcal{L}\cup\{\unmatched\},\qquad
+\hat{c}(x)\in\mathcal{C}
+\]
+를 출력한다. 즉 세부 레이블은 보류할 수 있으나 카테고리는 보류할 수
+없다.
+
+\textbf{2단계(level 2) 지표}는 선택적 예측을 따른다. \emph{커버리지}
+$\phi=\Pr[\hat{\ell}\neq\unmatched]$, \emph{매칭 정확도}
+$\Pr[\hat{\ell}=\ell \mid \hat{\ell}\neq\unmatched]$, 그리고 보류를
+오답으로 계산하는 \emph{전체 정확도} $\Pr[\hat{\ell}=\ell]$이다.
+
+\textbf{1단계(level 1) 지표}는 카테고리 정확도 $\Pr[\hat{c}=c]$와
+카테고리 커버리지(배정된 행의 비율; 설계상 1.0이며 실행 시 검증)이다.
+추가로
+\[
+A_{\text{unm}}
+  \;=\;
+  \Pr\!\left[\hat{c}=c \,\middle|\, \hat{\ell}=\unmatched\right],
+\]
+즉 \emph{보류 행에서의 카테고리 정확도}를 보고한다. $A_{\text{unm}}$은
+우아한 성능 저하의 척도이다. 증거가 세밀한 판단을 내리기에 부족할 때,
+굵은 판단은 얼마나 자주 옳은가? 커버리지 100\,\%는 무작위 추측으로도
+달성되므로, $A_{\text{unm}}$이 강제 배정의 품질을 가시화한다.
+
+0단계 필터는 범위 밖 행(공산품, 비외식 매장)을 제거하며, 그 누수는
+별도로 보고한다.
+
+\section{카테고리 분류 체계}
+\label{sec:taxonomy}
+
+13개 카테고리는 한국 배달 플랫폼의 탐색 구조를 따른다: 치킨, 한식, 중식,
+카페·디저트, 분식, 찜·탕·찌개, 돈까스·회·일식, 피자, 버거·패스트푸드,
+족발·보쌈, 고기·구이, 양식, 아시안. 설계는 다섯 원칙을 따른다.
+
+\begin{enumerate}
+\item \textbf{플랫폼 정합.} 판매자와 소비자가 이미 사용하는 분류의
+  명칭과 경계를 따르므로 출력이 산업 통계와 직접 비교 가능하다.
+\item \textbf{음식 종류만.} 플랫폼은 음식 카테고리와 \emph{기능}
+  카테고리를 혼합하는데, 요기요 파트너 문서는 야식 카테고리를 매장
+  영업시간만으로 정의한다 \cite{yogiyo}. 시간·기능 기반 분류는 상품명의
+  속성이 아니므로 제외한다.
+\item \textbf{태그가 아닌 분할.} 플랫폼은 한 매장을 최대 세 카테고리에
+  노출하지만 \cite{yogiyo}, 분석에는 상호 배타적·전수적 클래스가
+  필요하므로 행마다 정확히 하나의 카테고리를 배정한다.
+\item \textbf{10--20개 클래스.} 노출되는 카테고리 레일의 규모와 일치하며
+  클래스별 지지도를 유의미하게 유지한다.
+\item \textbf{비율 보정 벤치마크.} 합성 벤치마크는
+  \texttt{benchmark\_share} 가중치로 카테고리를 표집한다. 카드 결제
+  데이터 분석은 치킨을 1위로 보고하며 \cite{hana2022}, 소비자 조사들도
+  치킨·중식·피자·족발보쌈을 상위권으로 일관되게 꼽는다. 그 결과 치킨이
+  0.18로 가장 두텁고 아시안이 0.01로 가장 얇은 분포가 된다. 이 가중치는
+  이질적 출처를 \emph{참고한 설계 선택}이지 시장 측정치가 아님을
+  명시한다.
+\end{enumerate}
+
+경계 결정은 공개 로그에 기록된다. 회 관련 레이블은 플랫폼의 복합 명명을
+따라 돈까스·회·일식으로 편입하고, 마라탕은 플랫폼 관행대로 중식에 두며,
+샌드위치·베이글은 주된 판매 업태에 따라 카페·디저트로, 토스트·핫도그는
+버거·패스트푸드로 배정한다. 레이블 커버리지가 없는 카테고리(도시락·죽)는
+비워 두는 대신 향후 과제로 미룬다.
+
+\textbf{커버리지가 보장된 배정.} 1단계 배정은 폴백 체인을 따른다.
+(i) \emph{최고 점수} 표준 레이블 $\ell^{*}$의 카테고리
+$\kappa(\ell^{*})$ --- 레이블 매칭이 보류된 경우에도 사용한다. 세밀한
+판단이 마땅히 거부하는 애매한 증거에서도 굵은 판단은 살아남을 수 있기
+때문이다. (ii) 정규화 후 이름이 비면, 매장 업종이 알려진 음식
+카테고리일 때 그 업종. (iii) 그 외에는 배치 최빈값. 모든 행은 어느
+분기가 발화했는지를 기록하여 메커니즘을 감사 가능하게 유지하며,
+$A_{\text{unm}}$이 정확히 문제가 되는 행에서 분기 (i)을 평가한다.
+
+\section{\menunorm{} 파이프라인}
+\label{sec:pipeline}
+
+\textbf{0단계: 대상 필터링.} 비외식 매장의 행은 업종으로 제거하고,
+체크섬이 검증되는 \emph{유효한} EAN-13 바코드를 지닌 행은 포장 공산품으로
+제거한다.
+
+\textbf{1단계: 규칙 정규화.} 손으로 고치던 기존 정규식 워크플로를
+순서가 고정된 선언적 규칙 집합이 대체한다. 유니코드 NFKC 정규화; 오프라인
+영$\rightarrow$한 용어집(라틴 문자 사이 공백을 접합하여
+\mbox{ch oco라떼}도 번역됨); 괄호 내용·장식 제거; 옵션·수량
+패턴(\mbox{-세트}류 접미, \mbox{1+1}류 판촉, 지점 접두); 공백 접합형까지
+매칭하는 표기 변형 맵; 잔여 숫자·라틴 정리. 각 행은 어떤 단계가
+발화했는지를 \texttt{rules\_fired}로 기록하므로 모든 변환이 검토
+가능하다.
+
+\textbf{2단계: 이중 분할.} 이름마다 두 토큰 열을 생성한다.
+\emph{형태소 경로}(MeCab \cite{kudo2004} + 평문 단어 목록에서 자동
+컴파일되는 사용자 사전; 종성 자질은 유니코드 산술로 도출)와 의존성 없는
+\emph{표면 경로}(문자 부류 청크)이다. 불용어 제거는 \emph{스팬
+인식}이다. 불용어는 단일 토큰 또는 인접 형태소 최대 3개의 접합과
+매칭되며 품사 필터보다 \emph{먼저} 수행된다. 그렇지 않으면 시그니처
+내부의 계사 태그($\rightarrow$시그/니/처)가 가운데 형태소를 삭제해
+불용어가 재결합될 수 없기 때문이다.
+
+\textbf{3단계: 점수 융합 표준화.} 두 후보 문자열을 $\mathcal{L}$에 대해
+채점한다. 공백 제거 후 완전일치를 우선하고, 아니면 문자 2--4-gram
+TF--IDF \cite{cavnar1994} 코사인 유사도(공백 유지형과 공백 접합형 질의
+중 최댓값)를 사용한다. 행별 융합 점수는 두 경로의 최댓값이며, 동점은
+글자를 잃지 않는 표면 후보를 우선한다. $\tau$ 미만의 점수는 보류한다.
+근거는 상보적 취약성이다. 형태소 분석은 띄어쓰기 노이즈에서 글자를
+잃고(\mbox{돼 지국밥}$\rightarrow$국밥; 쫄면은 용언 활용형으로 태깅되어
+삭제), 표면 매칭은 붙여 쓴 복합어에 약하다. 융합은 행마다 더 강한
+신호를 유지하며 \S\ref{sec:results}가 이를 정량화한다.
+
+\textbf{4단계: 카테고리 배정}은 \S\ref{sec:taxonomy}의 폴백 체인을
+구현한다.
+
+\textbf{5단계: 평가와 발굴.} \S\ref{sec:task}의 지표에 더해, 단일 채점
+결과로부터 임계값 스윕을 산출하고, 보류된 이름들을 동일 TF--IDF 공간에서
+$k$-means \cite{lloyd1982}로 군집화하여 각 군집의 최빈 원소를 신규 표준
+레이블 \emph{후보}로 제안한다. 잔여 질량을 조용한 오류 대신 사람의 검수
+큐로 전환하는 것이다.
+
+구현은 테스트가 완비된 파이썬 패키지이다(scikit-learn 매칭 백엔드
+\cite{pedregosa2011}; 단위·엔드투엔드 테스트 35개; Python 3.10/3.12와
+두 토크나이저 백엔드에 대한 지속 통합으로 MeCab 없이도 실행 가능성을
+보장).
+
+\section{공개 2-트랙 벤치마크}
+\label{sec:benchmark}
+
+레코드 연계 평가의 합성 데이터 전통 \cite{christen2005}을 따라, NDA
+데이터 대신 결정적 생성기를 공개한다.
+
+\textbf{노이즈 모델.} 표집된 각 표준명에 실데이터에서 기록된 유형을
+반영하는 오염 연산을 독립적으로 적용한다. 장식·판촉
+태그(\mbox{★}{\dots}\mbox{★}, [인기]); 옵션·수량
+접미(세트/셋트/단품, \mbox{1+1}, \mbox{2인분}, \mbox{500ml}); 음료의
+온도 접두(ICE/아이스); 무작위 공백 삽입; 용어집으로 역변환 가능한
+한$\rightarrow$영 부분 치환(치즈$\rightarrow$cheese); 표기
+변형(돈가스$\rightarrow$돈까스); 지점 접두. 그리고 0단계 필터가 제거해야
+하는, \emph{유효한} EAN-13 코드를 지닌 공산품 행과 비외식 매장 행(정답
+레이블 \texttt{NOT\_TARGET})을 혼입한다.
+
+\textbf{2단계 표집.} 카테고리는 \texttt{benchmark\_share}
+(\S\ref{sec:taxonomy})로 뽑고, 카테고리 내부 레이블은 Zipf
+분포($s{=}1.05$) \cite{zipf1949}를 따라 원 프로젝트의 동기가 된 롱테일
+구조를 재현한다. 생성된 비율은 목표를 카테고리당 $\pm 0.005$ 이내로
+추적한다.
+
+\textbf{지름길 차단 설계.} 확률 0.15로 행의 매장 업종을 품목의
+카테고리와 다르게 설정한다(돈가스를 파는 분식집). 따라서 매장 열을
+복사하는 카테고리 예측은 벌점을 받으며, 파이프라인은 텍스트로 분류하고
+매장 열은 폴백 분기 (ii)에서만 사용한다 \cite{geirhos2020}.
+
+\textbf{트랙.} \emph{standard} 트랙은 위 유형만 사용하며 모두 렉시콘이
+커버하므로 상한이 100\,\%인 폐쇄 세계 회귀 테스트로 기능한다.
+\emph{hard} 트랙은 추가로 확률 0.12로 \emph{어떤} 렉시콘도 커버하지 않는
+글자 수준 오타(삭제, 인접 전치, 중복) 하나를 적용하여 순수한 퍼지 매칭
+견고성을 검증한다. 두 트랙 모두 20{,}000행, 시드 42이며,
+6{,}912개(standard)와 7{,}981개(hard)의 고유 원시 문자열이 136개
+레이블로 수렴한다.
+
+\section{실험}
+\label{sec:results}
+
+\textbf{설정.} 임계값 $\tau{=}0.45$(스윕에서 선택, 그림~\ref{fig:sweep}),
+문자 $n$-gram $n\in[2,4]$, 형태소 경로는 컴파일된 사용자 사전을 갖춘
+MeCab이다. 지표는 대상 행에 대해 계산하며, 0단계 필터는
+1{,}889행(standard)과 2{,}024행(hard)의 오염 행을 두 트랙 모두
+\emph{누수 0}으로 제거하였다.
+
+\begin{table}[t]
+\centering
+\small
+\caption{주요 결과(20{,}000행, 시드 42). Level-2는 보류 가능한 표준
+레이블, Level-1은 커버리지가 보장된 카테고리이다(\%).}
+\label{tab:main}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+& \multicolumn{3}{c}{Level-2 (레이블)} & Level-1 \\
+\cmidrule(lr){2-4}\cmidrule(l){5-5}
+트랙 & 커버리지 & 매칭 & 전체 & 카테고리 \\
+\midrule
+standard & 100.0 & 100.0 & \textbf{100.0} & \textbf{100.0} \\
+hard     & 98.75 & 99.68 & \textbf{98.44} & \textbf{99.72} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{주요 결과}(표~\ref{tab:main}). standard 트랙의 만점은 설계된
+대로 읽어야 한다. 이는 파이프라인이 \emph{알려진} 모든 노이즈 유형을
+완전히 역변환함을 검증하는 폐쇄 세계 회귀 속성이지 실전 성능 주장이
+아니다. 정보량이 큰 쪽은 hard 트랙이다. 어떤 렉시콘도 모르는 오타
+아래에서 레이블 정확도 98.44\,\%, 카테고리 정확도 99.72\,\%(커버리지
+100\,\%)를 달성한다. 카테고리 혼동 행렬은 대각선에
+가깝다(그림~\ref{fig:conf}).
+
+\begin{table}[t]
+\centering
+\small
+\caption{분할 방식 ablation, hard 트랙(\%).}
+\label{tab:ablation}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+경로 & 커버리지 & 매칭 & 전체 \\
+\midrule
+형태소 단독 & 93.14 & 99.30 & 92.48 \\
+표면 단독   & 98.58 & 99.76 & 98.34 \\
+\textbf{융합 (max score)} & \textbf{98.75} & 99.68 & \textbf{98.44} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{융합 ablation}(표~\ref{tab:ablation}). 각 경로는 예측대로
+실패한다. 형태소 경로는 띄어쓰기 노이즈에서 글자를 잃고, 표면 경로는
+붙여 쓴 복합어에서 분할이 부족하다. 행 단위 최댓값 융합은 커버리지와
+전체 정확도 모두에서 두 경로를 능가하며, 판단이 전역 토크나이저 선택이
+아니라 행마다 데이터에 의해 내려진다는 점이 유용하다.
+
+\textbf{우아한 성능 저하.} 레이블 매칭이 보류된 hard 트랙 224개 행에서
+폴백으로 배정된 카테고리는 $A_{\text{unm}}{=}85.3\,\%$가 정답이었다.
+예컨대 \mbox{♥부찌대개세트♥}(이중 전치된 부대찌개 세트)는 최고 레이블에
+대해 0.21점에 그쳐 2단계에서 정당하게 거부되지만, 카테고리는
+찜·탕·찌개로 올바르게 귀결된다. 세밀한 판단이 확신할 수 없는 증거에서도
+굵은 판단은 살아남는다.
+
+\textbf{사용자 사전.} 기본 사전은 음식 외래어를 과분할하며, 컴파일된
+사용자 사전이 단일 토큰을 복원한다. 예:
+아인슈페너(아인/슈페너$\rightarrow$아인슈페너),
+크로플(크로/플$\rightarrow$크로플),
+마라샹궈(마라/샹/궈$\rightarrow$마라샹궈),
+알리오올리오(알/리오/올리/오$\rightarrow$알리오올리오). 이는 형태소
+경로를 끌어올려 융합 내부에서 그 경로가 갖는 잔여 가치를 설명한다.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/threshold_sweep.png}
+\caption{보류 임계값에 따른 커버리지/정밀도 트레이드오프(hard 트랙).
+운영점 $\tau{=}0.45$는 매 실행 재산출되는 이 스윕에서 선택되었다.}
+\label{fig:sweep}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/confusion_matrix.png}
+\caption{hard 트랙의 행 정규화 카테고리 혼동 행렬.}
+\label{fig:conf}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/long_tail.png}
+\caption{롱테일 붕괴의 순위--빈도 관점: 7{,}981개의 고유 원시 문자열이
+136개 표준 레이블로 사상된다(hard 트랙).}
+\label{fig:tail}
+\end{figure}
+
+\textbf{임계값 거동}(그림~\ref{fig:sweep}). $\tau$가 커질수록 매칭
+정확도는 단조 상승하고 커버리지는 단조 하락하는 고전적 거부 옵션
+트레이드오프이다 \cite{chow1970,elyaniv2010}. 점수가 임계값과 무관하게
+계산되므로 스윕에 추가 유사도 연산이 들지 않는다.
+
+\textbf{효율과 재현성.} 20{,}000행 전체 실행은 사용자 사전 컴파일을
+포함해 단일 코어(Python 3.12)에서 약 1초에 끝난다. 시드가 주어지면
+생성과 평가는 결정적이며, 본 논문의 모든 표와 그림은 세 개의 명령으로
+재생성된다.
+
+\textbf{오류 분석.} hard 트랙의 잔여 레이블 오류는 (i) 오염 후 용어집을
+무력화하는 라틴 문자 구간 내부 오타와 (ii) 두 레이블을 거의
+등거리로 만드는 삭제(\mbox{크 로와상}이 크로플 쪽으로 표류)에
+집중된다. 보류 메커니즘은 후자의 다수를 확신에 찬 오답 대신
+\unmatched{}와 올바른 카테고리의 조합으로 전환한다.
+
+\section{한계}
+\label{sec:limitations}
+
+벤치마크는 합성 데이터이다. 노이즈 모델이 기록된 실제 유형에서
+도출되었고 hard 트랙이 렉시콘 커버리지라는 교란 요인을 제거하지만, 절대
+수치는 개방 세계 운영 데이터(미지의 오타 부류, OCR 노이즈, 신규
+메뉴)보다 낙관적일 수밖에 없다. \texttt{benchmark\_share} 가중치는
+이질적 공개 통계를 참고한 설계 선택이지 시장 측정치가 아니며, 그렇게
+인용되어서는 안 된다. 한·영 혼용 복원은 오프라인 용어집에 의존하며,
+용어집에 없는 로마자 표기는 추측되지 않고 \unmatched{}로
+귀착된다(카테고리는 여전히 배정됨). 표준 레이블 인벤토리(136종)는
+의도적으로 작다. 근사 최근접 탐색을 통한 $10^3$ 레이블 규모 확장과 동일
+ablation 프로토콜 아래 임베딩 기반 제3 융합 후보의 추가가 자연스러운
+다음 단계이다. 원 산학협력의 보고 성과(약 2,000만 건을 약 1,000개
+레이블로, 표본 수기 검수 약 95\,\%)는 동기 맥락으로만 제공되며 공개
+산출물로부터 재현되지 않는다.
+
+\section{결론}
+
+\menunorm{}은 임시방편의 산업 표준화 작업을 재현 가능한 연구 산출물로
+재주조한다. 정직한 보류와 카테고리 전량 배정을 조화시키는 2단계 정식화,
+주장 대신 ablation으로 이득이 입증되는 융합 매칭기, 모든 경계 결정이
+출처와 함께 기록된 분류 체계, 그리고 속이기 어렵게 설계된
+벤치마크---폐쇄 세계 상한의 명시, 지름길 열의 오염, 어떤 렉시콘도
+커버하지 않는 오타 트랙---이 그것이다. 본 공개가 한국어 커머스 텍스트를
+위한 실용 도구이자, NDA에 묶인 산업 작업을 검증 가능한 과학으로 전환하는
+하나의 본보기가 되기를 기대한다.
+
+\begin{thebibliography}{16}\small
+
+\bibitem{cavnar1994}
+W.~B. Cavnar and J.~M. Trenkle.
+\newblock N-gram-based text categorization.
+\newblock In \emph{Proc.\ 3rd Annual Symposium on Document Analysis and
+Information Retrieval (SDAIR)}, pages 161--175, 1994.
+
+\bibitem{cevahir2016}
+A.~Cevahir and K.~Murakami.
+\newblock Large-scale multi-class and hierarchical product categorization
+for an e-commerce giant.
+\newblock In \emph{Proc.\ COLING}, pages 525--535, 2016.
+
+\bibitem{chow1970}
+C.~K. Chow.
+\newblock On optimum recognition error and reject tradeoff.
+\newblock \emph{IEEE Transactions on Information Theory}, 16(1):41--46,
+1970.
+
+\bibitem{christen2005}
+P.~Christen.
+\newblock Probabilistic data generation for deduplication and data linkage.
+\newblock In \emph{Proc.\ IDEAL}, pages 109--116. Springer, 2005.
+
+\bibitem{christen2012}
+P.~Christen.
+\newblock \emph{Data Matching: Concepts and Techniques for Record Linkage,
+Entity Resolution, and Duplicate Detection}.
+\newblock Springer, 2012.
+
+\bibitem{cohen2003}
+W.~W. Cohen, P.~Ravikumar, and S.~E. Fienberg.
+\newblock A comparison of string distance metrics for name-matching tasks.
+\newblock In \emph{Proc.\ IJCAI Workshop on Information Integration on the
+Web (IIWeb)}, pages 73--78, 2003.
+
+\bibitem{elyaniv2010}
+R.~El-Yaniv and Y.~Wiener.
+\newblock On the foundations of noise-free selective classification.
+\newblock \emph{Journal of Machine Learning Research}, 11:1605--1641, 2010.
+
+\bibitem{geirhos2020}
+R.~Geirhos, J.-H. Jacobsen, C.~Michaelis, R.~Zemel, W.~Brendel,
+M.~Bethge, and F.~A. Wichmann.
+\newblock Shortcut learning in deep neural networks.
+\newblock \emph{Nature Machine Intelligence}, 2:665--673, 2020.
+
+\bibitem{hana2022}
+하나금융경영연구소.
+\newblock 배달 앱 이용 현황과 메뉴 유형별 수요 특성. 카드 결제 데이터
+분석 보고서, 2022.
+
+\bibitem{kudo2004}
+T.~Kudo, K.~Yamamoto, and Y.~Matsumoto.
+\newblock Applying conditional random fields to Japanese morphological
+analysis.
+\newblock In \emph{Proc.\ EMNLP}, pages 230--237, 2004.
+
+\bibitem{lloyd1982}
+S.~P. Lloyd.
+\newblock Least squares quantization in PCM.
+\newblock \emph{IEEE Transactions on Information Theory}, 28(2):129--137,
+1982.
+
+\bibitem{mcnamee2004}
+P.~McNamee and J.~Mayfield.
+\newblock Character n-gram tokenization for European language text
+retrieval.
+\newblock \emph{Information Retrieval}, 7(1--2):73--97, 2004.
+
+\bibitem{park2014}
+E.~L. Park and S.~Cho.
+\newblock KoNLPy: Korean natural language processing in Python.
+\newblock In \emph{Proc.\ 26th Annual Conference on Human and Cognitive
+Language Technology (HCLT)}, 2014.
+
+\bibitem{pedregosa2011}
+F.~Pedregosa et~al.
+\newblock Scikit-learn: Machine learning in Python.
+\newblock \emph{Journal of Machine Learning Research}, 12:2825--2830, 2011.
+
+\bibitem{yogiyo}
+요기요 파트너 문서.
+\newblock 요기요 카테고리 소개.
+\newblock \url{https://partner.yogiyo.co.kr}, 2026년 접속.
+
+\bibitem{zipf1949}
+G.~K. Zipf.
+\newblock \emph{Human Behavior and the Principle of Least Effort}.
+\newblock Addison-Wesley, 1949.
+
+\end{thebibliography}
+
+\end{document}
