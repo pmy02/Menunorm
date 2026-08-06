@@ -574,17 +574,6 @@ Full detail in [`CHANGELOG.md`](CHANGELOG.md).
 - [ ] Jamo-level n-grams to attack the deletion/transposition failure family
 - [ ] 도시락·죽 category once the label inventory covers it
 
-## Citation
-
-```bibtex
-@software{park2023menunorm,
-  author = {Park, Minyoung},
-  title  = {MenuNorm: Two-Level Standardization of Noisy Korean Product Names},
-  year   = {2023},
-  url    = {https://github.com/pmy02/Menunorm}
-}
-```
-
 ## License
 
 MIT — see [LICENSE](LICENSE). Maintained by
