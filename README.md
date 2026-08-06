@@ -21,10 +21,9 @@
 
 ```text
 ★양념 치킨 라지★         →  양념치킨       │ 치킨              1.00   exact
-[강남점] ♥하와이안피자♥   →  하와이안피자    │ 피자              1.00   exact
+[강남점] ♥하와이안피자♥   →  하와이안피자     │ 피자              1.00   exact
 불고고기 버거             →  불고기버거     │ 버거·패스트푸드    0.89   fuzzy
-♥부찌대개세트♥           →  UNMATCHED     │ 찜·탕·찌개        0.21   label abstains,
-                                                                    category still holds
+♥부찌대개세트♥           →  UNMATCHED    │ 찜·탕·찌개        0.21   label abstains, category still holds
 ```
 
 Product names typed by merchants arrive decorated, abbreviated, misspelled,
