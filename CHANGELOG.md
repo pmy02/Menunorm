@@ -42,8 +42,14 @@ from a manual notebook workflow to a two-level standardization system.
   conference working paper (`paper/`: English & Korean, XeLaTeX + Word)
   presenting the two-level method, taxonomy design, and benchmark.
 - Full README rewrite in both languages: centered header with logo and
-  badges, results and quick start surfaced above the fold, collapsible
-  advanced usage, an inline figure gallery, and a version-history table.
+  badges, a contents bar, results and quick start surfaced above the fold,
+  and an inline figure gallery with interpretive captions. New depth
+  sections: precise metric definitions, a stage-by-stage worked example
+  traced through a real row, per-category precision/recall/F1, a threshold
+  sweep excerpt, an error analysis naming the two failure families, a
+  benchmark-design section with the noise-operation rate table, a
+  configuration reference, and a design-decisions FAQ (why abstention, why
+  TF-IDF over embeddings, why a single category per row).
 
 ### Changed
 - Results are now reported at both levels. Hard track (typos unseen by any
